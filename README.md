@@ -98,7 +98,7 @@ python fua.py -a "http://www.example.com/" -k /pc -b /testapi -A Cookie -t "Sess
 
 # 是否有用
 
-emmm，确实扫到过几个信息泄露和未授权，至少可以帮你过滤一下站点在JS中存在的基本接口信息来进一步做一下越权测试。
+emmm，确实扫到过几个信息泄露和未授权，至少可以帮你过滤一下站点在JS中的基本接口信息来进一步做越权测试。
 
 
 
