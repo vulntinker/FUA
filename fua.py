@@ -211,7 +211,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="")
                             total_js.append(js_url)
             for i in total_js:
                 if "config" in i:
-                    print(colored("\n\n"+"[+] "+i,"yellow"))
+                    print(colored("\n"+"[+] "+i,"yellow"))
                     js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
                     find_hiddend_js(i,js_response.text)
                     get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base)
