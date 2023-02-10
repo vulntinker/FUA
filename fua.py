@@ -18,7 +18,6 @@ reg_match = [
 # Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
 baseAPI = ""
-baseAPI_list = []
 path_req = []
 req_url = []
 total_js = []
