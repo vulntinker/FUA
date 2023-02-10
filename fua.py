@@ -18,6 +18,7 @@ reg_match = [
 # Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
 baseAPI = ""
+baseAPI_list = []
 path_req = []
 req_url = []
 total_js = []
@@ -107,7 +108,7 @@ def find_base_api(url,res_text):
 
 
 
-def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,token="",auth_type="",change_domain=""):
+def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_type="",change_domain=""):
     try:     
         global reg_match
         global baseAPI
@@ -115,15 +116,13 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,tok
         global path_req
         global js_black_list
 
-        if warning and user_set_base == "":
-            print(colored("\n\n\t\t [!] baseURL|baseAPI is empty, the outcome of fuzzing may become meaningless.\n\n","green",attrs=["bold"]))
         if baseAPI == "":
             find_base_api(js_link,res_text)
         if change_domain:
                 baseAPI = change_domain
         if res_text == "":
             res_text = make_request(url=js_link,token=token,single_request=True,auth_type=auth_type).text
-        if user_set_base != "":
+        if user_set_base != None:
             baseAPI = user_set_base.replace(" ","")
             if change_domain:
                 baseAPI = (change_domain+baseAPI)
@@ -215,21 +214,21 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
                 if "config" in i:
                     print(colored("\n\n"+"[+] "+i,"yellow"))
                     js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
-                    find_hiddend_js(i,js_response.text)
+                    find_hidden_js(i,js_response.text)
                     get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
                     total_js.remove(i)
                     break
                 elif "app" in i:
                     print(colored("\n"+"[+] "+i,"yellow"))
                     js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
-                    find_hiddend_js(i,js_response.text)
+                    find_hidden_js(i,js_response.text)
                     get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
                     total_js.remove(i)
                     break
             for j in total_js:
                 print(colored("\n\n"+"[+] "+j,"yellow"))
                 js_response = make_request(url=j,token=token,auth_type=auth_type,single_request=True)
-                find_hiddend_js(j,js_response.text)
+                find_hidden_js(j,js_response.text)
                 get_apis_from_js_link(j,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base,change_domain=change_domain)
         else:
             print(colored("[!] ERR:\t"+url+'\t'+str(response.status_code)+"\t"+response.reason,"green")) 
@@ -238,7 +237,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
         pass
 
 
-def find_hiddend_js(url,res_text):
+def find_hidden_js(url,res_text):
     global total_js
     reg_match = [
     r'"(/[a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"',
@@ -295,19 +294,9 @@ if __name__ == '__main__':
 
         args = parser.parse_args()
         if args.autourl:
-            if args.url_base != None and args.keep_path != None and args.change_domain != None :
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain)
-            if args.url_base != None and args.keep_path == None:
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,change_domain=args.change_domain)
-            if args.url_base == None and args.keep_path != None:
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,keep_path=args.keep_path)
-            else:
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token)
+            auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain)
         elif args.single_js:
-            if args.url_base == None:
-                get_apis_from_js_link(js_link=args.single_js,token=args.token,auth_type=args.auth_type,warning=True)
-            else:
-               get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,warning=True) 
+            get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain,) 
         fuzzing_complete()
     except KeyboardInterrupt:
         print("\n")
