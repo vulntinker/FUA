@@ -1,12 +1,16 @@
 # FUA (Fuzzing Unauthorized Api)
 
+![image-20230210182024125](README.assets/image-20230210182024125.png)
+
 # 简述
 
 把JS文件中存在的相对路径用正则表达式匹配出来，然后无脑的用GET和POST去访问，获取返回结果。
 
 项目是功能堆砌差不多后，一边用一边调的，目前本人代码水平稀烂，BUG肯定会有，多多包涵。
 
-项目的目的是辅助手工判断，希望能有用。
+项目的目的是辅助手工判断，希望能有帮助。
+
+建议在macOS/Linux下使用。
 
 # 安装
 
@@ -26,6 +30,8 @@ pip install beautifulsoup4 requests termcolor argparse
 
 可以直接将任意形式的URL丢入-a，会自动获取网页中存在的JS和可能隐藏在JS中的一些JS相对路径。
 
+![image-20230210181048700](README.assets/image-20230210181048700.png)
+
 如果发现JS路径错误，可以手动看一下是否是因为网站JS目录识别错误的问题，如果js前需要拼接一个路径可以使用-k参数
 
 如 http(s)://example.com 中，js存在的路径是分为pc或mobile，那么可以使用
@@ -40,13 +46,17 @@ python fua.py -a http://example.com -k /mobile
 
 
 
-程序有自动发现baseURL的功能，但站点的配置各有不同，识别错误或者漏掉肯定会发生，如有问题，可以手动抓个包看一下baseURL的路径，然后使用-b参数，这样就会把-b后的路径拼接到JS中识别到的路径前。
+程序有自动发现baseURL的功能，但站点的配置各有不同，识别错误或者漏掉肯定会发生，如有问题，可以手动抓个包看一下接口baseURL的路径，然后使用-b参数，这样就会把-b后的路径拼接到JS中识别到的路径前。
 
 ```shell
 假设http://example.com 存在 /log/show_logs 这个接口，
 它的baseurl是/testapi
 程序没有识别到，这个时候使用-b /testapi 就可以把它拼接到所有在JS中匹配到的所有相对路径前。
 ```
+
+![image-20230210181533752](README.assets/image-20230210181533752.png)
+
+比如这个站点sgs-api没有识别到，就可以使用 -b /sgs-api 这样程序匹配到的每一条路径在访问前都会拼接上它
 
 
 
@@ -64,7 +74,11 @@ python fua.py -a http://example.com -k /mobile
 
 ####  身份信息
 
-如果需要添加登陆之后的身份信息，可以使用 -A 和 -t 参数添加认证信息
+有的站点可以注册或者通过弱口令还是其他的什么方式能登陆进去，可以添加认证信息对站点进一步测试。
+
+
+
+如果需要添加登陆之后的身份信息，可以使用 -A 和 -t 参数添加认证信息。
 
 ![image-20230210162424451](README.assets/image-20230210162424451.png)
 
@@ -84,7 +98,7 @@ python fua.py -a "http://www.example.com/" -k /pc -b /testapi -A Cookie -t "Sess
 
 # 是否有用
 
-emmm，确实扫到过几个信息泄露和未授权，退一万步，至少可以帮你过滤一下站点在JS中存在的基本接口信息来进一步做一下越权测试。
+emmm，确实扫到过几个信息泄露和未授权，至少可以帮你过滤一下站点在JS中存在的基本接口信息来进一步做一下越权测试。
 
 
 
