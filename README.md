@@ -26,6 +26,8 @@ pip install beautifulsoup4 requests termcolor argparse
 
 随机生成参数，这里只进行了非常简单的常识，之前的代码里是加了随机数，但是由于垃圾数据的原因会是得有随机数的URL绕过了列表的过滤，所以就写死了数字，同时也没有进行`?id=`类型的参数尝试，还是保持一边用一边写一边调的原则。代码稀烂，各位包涵。
 
+
+
 #### -a  参数
 
 可以直接将任意形式的URL丢入-a，会自动获取网页中存在的JS和可能隐藏在JS中的一些JS相对路径。
@@ -57,6 +59,20 @@ python fua.py -a http://example.com -k /mobile
 ![image-20230210181533752](README.assets/image-20230210181533752.png)
 
 比如这个站点sgs-api没有识别到，就可以使用 -b /sgs-api 这样程序匹配到的每一条路径在访问前都会拼接上它
+
+
+
+#### -c 参数
+
+如果接口是非输入的URL，则可以使用-c 指定接口URL，识别到的相对路径则会拼接到改URL后，这个URL需要符合`http(s)://www.example.com:ports`的形式。可以与-b结合使用
+
+```
+假设IP：127.0.0.1:80 的接口为127.0.0.1:8081
+则可以使用
+python fua.py -a http://127.0.0.1:80 -c http://127.0.0.1:8081 -b /testcase-api
+
+程序会识别80端口下网页中的JS，将识别出的相对路径拼接到-c后URL中，如果-b存在，那么会在给新的URL添加上自定义的base
+```
 
 
 
