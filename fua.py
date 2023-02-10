@@ -80,35 +80,35 @@ def find_base_api(url,res_text):
     global baseAPI_list
     base_url_match = ['baseurl:"(.*?)"','baseurl: "(.*?)"','baseapi:"(.*?)"','baseapi: "(.*?)"']
     c = 1
-    if len(baseAPI_list) == 0:
+    if baseAPI == "":
         for m in base_url_match:
             baseAPI = re.findall(m, res_text,re.IGNORECASE)
             if len(baseAPI) == 1 and baseAPI[0] != " " and baseAPI[0] != "":
                 if "http:" in baseAPI[0] or "https:" in baseAPI[0]:
                     if urlsplit(baseAPI[0]).netloc != urlsplit(url).netloc: # 如何域名不同则设置为输入的域名
-                        baseAPI_list.append(remove_url_params(baseAPI[0]))
-                        return
-                    baseAPI_list.append(baseAPI[0])
-                    return
+                        baseAPI=remove_url_params(baseAPI[0])
+                        return 
+                    baseAPI=baseAPI[0]
+                    return 
                 if baseAPI[0][0] != '/' :
                     baseAPI[0] = '/' + baseAPI[0]
-                baseAPI_list.append(remove_url_params(url)+baseAPI[0])
-                return
+                baseAPI=remove_url_params(url)+baseAPI[0]
+                return 
             elif len(baseAPI) == 2 and (baseAPI[1] == "" or baseAPI[1] == " "):
                 if "http://" in baseAPI[0] or "https://" in baseAPI[0]:
-                    baseAPI_list.append(urlsplit(baseAPI[0]).path)
-                    return
+                    baseAPI=urlsplit(baseAPI[0]).path
+                    return 
                 else:
-                    baseAPI_list.append(remove_url_params(url)+baseAPI[0])
-                    return
+                    baseAPI=remove_url_params(url)+baseAPI[0]
+                    return 
             else: 
                 continue
-        baseAPI_list.append(remove_url_params(url))
+        baseAPI = remove_url_params(url)
 
 
 
 
-def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,token="",auth_type=""):
+def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,token="",auth_type="",change_domain=""):
     try:     
         global reg_match
         global baseAPI
@@ -118,18 +118,22 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,tok
 
         if warning and user_set_base == "":
             print(colored("\n\n\t\t [!] baseURL|baseAPI is empty, the outcome of fuzzing may become meaningless.\n\n","green",attrs=["bold"]))
+        if baseAPI == "":
+            find_base_api(js_link,res_text)
+        if change_domain:
+                baseAPI = change_domain
         if res_text == "":
             res_text = make_request(url=js_link,token=token,single_request=True,auth_type=auth_type).text
         if user_set_base != "":
             baseAPI = user_set_base.replace(" ","")
-            baseAPI_list.append(remove_url_params(js_link)+baseAPI)
-        if baseAPI == "" or "http" in baseAPI or len(baseAPI) == 0:
-            find_base_api(js_link,res_text)
-        if baseAPI_list[0]:
-            print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI_list[0])
+            if change_domain:
+                baseAPI = (change_domain+baseAPI)
+            else:
+                baseAPI = remove_url_params(js_link)+baseAPI
+        
+        print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI)
 
         print("\n[+] Requesting Apis,this will take a moment...\n")
-
         match_count = 0
         guess_url = ""
         for match in reg_match:
@@ -140,33 +144,32 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,tok
                 for js in file_path_match:
                     if js not in js_black_list:
                         count += 1
-                        for b in baseAPI_list:
-                            sent = b
-                            if sent[-1] == '/':
-                                sent = sent.rstrip('/')
-                            if js[0] != '/':
-                                js = '/'+js
-                            if "/api" not in js or "api/" not in js:
-                                guess = "/api"+js
-                                guess_url = sent+guess+'/'
-                            if "/logout" in js or "loginOut" in js or "loginout" in js or "resetToken" in js or "refreshToken" in js:
-                                continue 
-                            final_req_url = sent+js
+                        sent = baseAPI
+                        if sent[-1] == '/':
+                            sent = sent.rstrip('/')
+                        if js[0] != '/':
+                            js = '/'+js
+                        if "/api" not in js or "api/" not in js:
+                            guess = "/api"+js
+                            guess_url = sent+guess+'/'
+                        if "/logout" in js or "loginOut" in js or "loginout" in js or "resetToken" in js or "refreshToken" in js:
+                            continue                                 
+                        final_req_url = sent+js
                         
-                            if final_req_url not in path_req and (all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120):
-                                path_req.append(final_req_url) 
+                        if final_req_url not in path_req and (all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120):
+                            path_req.append(final_req_url) 
 
-                                url_with_random_p = final_req_url+'/'+"4321"
+                            url_with_random_p = final_req_url+'/'+"4321"
 
-                                make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                            make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
 
-                                make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                            make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
 
-                                if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
-                                    if guess_url:
-                                        guess_url_with_random_p = guess_url + "1234" # 固定数字方志后面重复访问
-                                        make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                                        make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                            if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
+                                if guess_url:
+                                    guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
+                                    make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                                    make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
     except Exception as e:
         print("\n")
         print(colored("[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
@@ -175,7 +178,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",warning=False,tok
 
 
 
-def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path=""):
+def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",change_domain=""):
     try:
         url = url.replace(" ","")
         global total_js 
@@ -211,24 +214,24 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="")
                             total_js.append(js_url)
             for i in total_js:
                 if "config" in i:
-                    print(colored("\n"+"[+] "+i,"yellow"))
-                    js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
-                    find_hiddend_js(i,js_response.text)
-                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base)
-                    total_js.remove(i)
-                    break
-                elif "app" in i:
                     print(colored("\n\n"+"[+] "+i,"yellow"))
                     js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
                     find_hiddend_js(i,js_response.text)
-                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base)
+                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
+                    total_js.remove(i)
+                    break
+                elif "app" in i:
+                    print(colored("\n"+"[+] "+i,"yellow"))
+                    js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
+                    find_hiddend_js(i,js_response.text)
+                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
                     total_js.remove(i)
                     break
             for j in total_js:
                 print(colored("\n\n"+"[+] "+j,"yellow"))
                 js_response = make_request(url=j,token=token,auth_type=auth_type,single_request=True)
                 find_hiddend_js(j,js_response.text)
-                get_apis_from_js_link(j,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base)
+                get_apis_from_js_link(j,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base,change_domain=change_domain)
         else:
             print(colored("[!] ERR:\t"+url+'\t'+str(response.status_code)+"\t"+response.reason,"green")) 
     except Exception as e:
@@ -289,13 +292,14 @@ if __name__ == '__main__':
         parser.add_argument("-b", "--base", dest="url_base", help="baseURL of the site incase the programme missed it.")
         parser.add_argument("-t", "--token", dest="token", help="token value")
         parser.add_argument("-k", "--keep", dest="keep_path", help="keep the path of user input URL.")
+        parser.add_argument("-c", "--change", dest="change_domain", help="Change domain incase the interface is different.")
 
         args = parser.parse_args()
         if args.autourl:
-            if args.url_base != None and args.keep_path != None:
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path)
+            if args.url_base != None and args.keep_path != None and args.change_domain != None :
+                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain)
             if args.url_base != None and args.keep_path == None:
-                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base)
+                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,change_domain=args.change_domain)
             if args.url_base == None and args.keep_path != None:
                 auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,keep_path=args.keep_path)
             else:
