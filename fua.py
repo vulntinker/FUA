@@ -139,20 +139,20 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
             match_count += 1
             file_path_match = re.findall(match, res_text,re.IGNORECASE)
             if file_path_match:
-                for js in file_path_match:
-                    if js not in js_black_list:
+                for rel_path in file_path_match:
+                    if rel_path not in js_black_list:
                         count += 1
                         sent = baseAPI
                         if sent[-1] == '/':
                             sent = sent.rstrip('/')
-                        if js[0] != '/':
-                            js = '/'+js
-                        if "/api" not in js or "api/" not in js:
-                            guess = "/api"+js
+                        if rel_path[0] != '/':
+                            rel_path = '/'+rel_path
+                        if "/api" not in rel_path or "api/" not in rel_path:
+                            guess = "/api"+rel_path
                             guess_url = sent+guess+'/'
-                        if "/logout" in js or "loginOut" in js or "loginout" in js or "resetToken" in js or "refreshToken" in js:
+                        if "/logout" in rel_path or "loginOut" in rel_path or "loginout" in rel_path or "resetToken" in rel_path or "refreshToken" in rel_path or "delete" in rel_path or "Delete" in rel_path:
                             continue                                 
-                        final_req_url = sent+js
+                        final_req_url = sent+rel_path
                         
                         if final_req_url not in path_req and (all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120):
                             path_req.append(final_req_url) 
