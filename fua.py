@@ -31,8 +31,6 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,match_count=0,
         headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
         if token != None and auth_type != None:
             headers.update({auth_type:token})
-        else:
-            headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
         
         if single_request:
             res = requests.get(url=url,headers=headers,verify=False,timeout=60)
