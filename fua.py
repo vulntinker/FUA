@@ -264,7 +264,7 @@ def find_hidden_js(url,res_text):
 
 def fuzzing_complete():
     print("\n")
-    print(colored("[+] Api Fuzzing Completed :)","yellow"))
+    print(colored("[*] Api Fuzzing Completed :)","yellow"))
 
 
 
