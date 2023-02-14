@@ -10,9 +10,9 @@
 
 *这个程序可以帮你把网站中JS里含有的API接口做无脑的GET和POST请求，把返回结果保存至txt中。*
 
-程序根据输入的URL匹配该URL中可能存在的JS链接，从html的script和link中抓取JS路径，并对可能在JS中存在的其他JS地址做了常识访问。
+程序根据输入的URL匹配该URL中可能存在的JS链接，从html的script和link中抓取JS路径，并尝试对可能在JS中存在的其他JS地址做了请求。
 
-JS抓取完毕后对每个JS文件中的相对路径进行GET和POST访问。
+JS抓取完毕后对每个JS文件中的相对路径进行GET和POST请求。
 
 # 可能存在的问题
 
