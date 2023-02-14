@@ -146,8 +146,11 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                         if rel_path[0] != '/':
                             rel_path = '/'+rel_path
                         if "/api" not in rel_path or "api/" not in rel_path:
-                            guess = "/api"+rel_path
-                            guess_url = sent+guess+'/'
+                            guess_0 = sent+"/api"+rel_path +'/'
+                            guess_1 = sent+"/api/v1"+rel_path +'/'
+                            guess_2 = sent+"/api/v2"+rel_path +'/'
+                            guess_3 = sent+"/api/v3"+rel_path +'/'
+                            guess = [guess_0,guess_1,guess_2,guess_3]
                         if "/logout" in rel_path or "loginOut" in rel_path or "loginout" in rel_path or "resetToken" in rel_path or "refreshToken" in rel_path or "delete" in rel_path or "Delete" in rel_path:
                             continue                                 
                         final_req_url = sent+rel_path
@@ -160,12 +163,12 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
 
                             make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-
-                            if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
-                                if guess_url:
-                                    guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
-                                    make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                                    make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                            for guess_url in guess:
+                                if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
+                                    if guess_url:
+                                        guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
+                                        make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                                        make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
     except Exception as e:
         print("\n")
         print(colored("[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
