@@ -113,7 +113,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         global baseAPI_list
         global path_req
         global js_black_list
-
+        guess = []
         if baseAPI == "":
             find_base_api(js_link,res_text)
         if change_domain:
@@ -163,12 +163,13 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
 
                             make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                            for guess_url in guess:
-                                if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
-                                    if guess_url:
-                                        guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
-                                        make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                                        make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                            if len(guess) != 0:
+                                for guess_url in guess:
+                                    if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
+                                        if guess_url:
+                                            guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
+                                            make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
+                                            make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
     except Exception as e:
         print("\n")
         print(colored("[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
