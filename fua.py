@@ -12,6 +12,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 reg_match = [
     r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
     r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
+    r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
+    r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
     r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
     r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
 ]
@@ -19,11 +21,12 @@ reg_match = [
 
 baseAPI = ""
 baseAPI_list = []
-path_req = []
 req_url = []
 total_js = []
+rel_fliter = []
+
 js_black_list = [
-    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM"
+    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM","application/json","text/ng-template","multipart/form-data","pan/move","lineX/Y"
 ]
 
 def make_request(url, data={},auth_type="",token="",num=0,total=0,match_count=0,single_request=False):
@@ -52,7 +55,7 @@ def echo_res(url,method,res_code,res_text,current_num,total_num,current_regex_nu
     sys.stdout.write("\033[2K\033[G"+"[+] Regex: {2}, ({0}/{1}) [{3}] URL: {4}".format(current_num,total_num,current_regex_num,method,url))
     sys.stdout.flush()
     file = open(urlsplit(url).netloc+".txt", "a")
-    if (res_code == 200 or res_code == 500) and "<html>" not in res_text and "<!doctype html>" not in res_text and "<!DOCTYPE html>" not in res_text and "</script>" not in res_text and 'status":401,' not in res_text and 'status":401}' not in res_text and 'code":401}' not in res_text and 'code":401,' not in res_text and "<title>" not in res_text and 'Code": 404' not in res_text and '"Code": 401' not in res_text and 'status":-1' not in res_text:
+    if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>", "</script>", ":401", "<title>", 'status":-1', ":404")):
         file.write("\n\n"+url+'\t\t'+str(res_code)+'\t\t'+ method+'\n\n'+res_text+"\n\n\n")
         print("\n\n")
         print("URL: ",url)
@@ -111,8 +114,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         global reg_match
         global baseAPI
         global baseAPI_list
-        global path_req
         global js_black_list
+        global rel_fliter
         guess = []
         if baseAPI == "":
             find_base_api(js_link,res_text)
@@ -138,26 +141,26 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
             file_path_match = re.findall(match, res_text,re.IGNORECASE)
             if file_path_match:
                 for rel_path in file_path_match:
-                    if rel_path not in js_black_list:
+                    if rel_path not in js_black_list and rel_path not in rel_fliter:
+                        rel_fliter.append(rel_path)
                         count += 1
                         sent = baseAPI
                         if sent[-1] == '/':
                             sent = sent.rstrip('/')
                         if rel_path[0] != '/':
                             rel_path = '/'+rel_path
+                        rel_path = rel_path.replace("post ","")
                         if "/api" not in rel_path or "api/" not in rel_path:
-                            guess_0 = sent+"/api"+rel_path +'/'
-                            guess_1 = sent+"/api/v1"+rel_path +'/'
-                            guess_2 = sent+"/api/v2"+rel_path +'/'
-                            guess_3 = sent+"/api/v3"+rel_path +'/'
+                            guess_0 = sent+"/api"+rel_path 
+                            guess_1 = sent+"/api/v1"+rel_path
+                            guess_2 = sent+"/api/v2"+rel_path
+                            guess_3 = sent+"/api/v3"+rel_path
                             guess = [guess_0,guess_1,guess_2,guess_3]
-                        if "/logout" in rel_path or "loginOut" in rel_path or "loginout" in rel_path or "resetToken" in rel_path or "refreshToken" in rel_path or "delete" in rel_path or "Delete" in rel_path:
+                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete"]):
                             continue                                 
                         final_req_url = sent+rel_path
                         
-                        if final_req_url not in path_req and (all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120):
-                            path_req.append(final_req_url) 
-
+                        if all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120:
                             url_with_random_p = final_req_url+'/'+"4321"
 
                             make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
@@ -165,7 +168,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
                             if len(guess) != 0:
                                 for guess_url in guess:
-                                    if guess_url not in path_req and (all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 ):
+                                    if all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 :
                                         if guess_url:
                                             guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
                                             make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
@@ -241,28 +244,45 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
 
 def find_hidden_js(url,res_text):
     global total_js
-    reg_match = [
-    r'"(/[a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"',
-    r'"([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"',
-    r"'(/[a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)'",
-    r"'([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)'",]
+    js_match = r'"([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"'
+
+    domain = remove_url_params(url)
+    pattern = r'"chunk-\w{8}":"\w{8}"'
+    matches = re.findall(pattern, res_text)
+    if matches:
+        for i in matches:
+            i = i.replace('"',"")
+            i = i.replace(':',".")
+            i = i + '.js'
+            if i[0] != '/':
+                i = "/" + i
+            js_path = urlsplit(url).path
+            js_path = "/".join(js_path.split("/")[:-1])
+            chunk_js = domain + js_path + i
+            if chunk_js not in total_js:
+                total_js.append(chunk_js)
 
     hidden_js = []
-    for i in reg_match:
-        find_hidden_js = re.findall(i, res_text,re.IGNORECASE)
-        if find_hidden_js:
-            for j in find_hidden_js:
-                if j not in hidden_js and ".js" in j:
-                    while "./" in j:
-                        j = j.replace("./","/")
-                        if "//" in j:
-                            j = j.replace("//","/")
-                    if j[0] != '/':
-                        j = '/' + j
-                    domain = remove_url_params(url)
+    find_hidden_js = re.findall(js_match, res_text,re.IGNORECASE)
+    if find_hidden_js:
+        for j in find_hidden_js:
+            if j not in hidden_js and ".js" in j:
+                domain = remove_url_params(url)
+                while "./" in j:
+                    j = j.replace("./","/")
+                    if "//" in j:
+                        j = j.replace("//","/")
+                if j[0] != '/':
+                    j = '/' + j
+                if j.count('/') <= 1:
+                    js_path = urlsplit(url).path
+                    js_path = "/".join(js_path.split("/")[:-1])
+                    domain = domain + js_path + j
+                else:
                     domain = domain+j
-                    if domain not in total_js:
-                        total_js.append(domain)
+                if domain not in total_js:
+                    total_js.append(domain)
+                    domain = remove_url_params(url)
 
     
 
