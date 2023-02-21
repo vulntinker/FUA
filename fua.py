@@ -7,13 +7,15 @@ import random
 from urllib.parse import urlsplit
 from termcolor import colored
 import argparse
+import threading
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# reg_match = r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_-]+(?:\s*/\s*[a-zA-Z0-9_-]+)*)'
 reg_match = [
     r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
-    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
     r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
     r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
+    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
     r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
     r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
 ]
@@ -24,12 +26,13 @@ baseAPI_list = []
 req_url = []
 total_js = []
 rel_fliter = []
-
 js_black_list = [
-    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM","application/json","text/ng-template","multipart/form-data","pan/move","lineX/Y"
+    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM","application/json","assets/profile","text/ng-template","multipart/form-data","pan/move","lineX/Y"
 ]
 
-def make_request(url, data={},auth_type="",token="",num=0,total=0,match_count=0,single_request=False):
+print_lock = threading.Lock()
+
+def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request=False):
     try:
         headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
         if token != None and auth_type != None:
@@ -38,35 +41,37 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,match_count=0,
         if single_request:
             res = requests.get(url=url,headers=headers,verify=False,timeout=60)
             return res
-
         response_get = requests.get(url, headers=headers,verify=False,timeout=60)
-        echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total,current_regex_num=match_count)
+        echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total)
         
         response_post = requests.post(url, json=data, headers=headers,verify=False,timeout=60)
-        echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=response_post.text,current_num=num,total_num=total,current_regex_num=match_count)
+        echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=response_post.text,current_num=num,total_num=total)
         return response_get,response_post
     except Exception as e:
-        print(colored("[!] Request ERR: "+str(e),"green"))
+        print(colored("\n\n[!] Request ERR: "+str(e),"green"))
         pass
 
 
-
-def echo_res(url,method,res_code,res_text,current_num,total_num,current_regex_num):
-    sys.stdout.write("\033[2K\033[G"+"[+] Regex: {2}, ({0}/{1}) [{3}] URL: {4}".format(current_num,total_num,current_regex_num,method,url))
-    sys.stdout.flush()
-    file = open(urlsplit(url).netloc+".txt", "a")
-    if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>", "</script>", ":401", "<title>", 'status":-1', ":404")):
-        file.write("\n\n"+url+'\t\t'+str(res_code)+'\t\t'+ method+'\n\n'+res_text+"\n\n\n")
-        print("\n\n")
-        print("URL: ",url)
-        print("Method: ",colored(method, 'red',attrs=["bold"]))
-        print("HTTP CODE: ",res_code)
-        print("SIZE: ",len(res_text))
-        print("RAW: ",colored(res_text, 'red',attrs=["bold"]))
-        print("\n\n")
-    else:
-        file.write(url+'\t\t'+str(res_code)+'\t\t'+ method+'\n\n')
-    file.close()
+def echo_res(url, method, res_code, res_text, current_num, total_num):
+    print_lock.acquire() 
+    try:
+        sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
+        sys.stdout.flush()
+        file = open(urlsplit(url).netloc + ".txt", "a")
+        if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>", "</script>", ":401", "<title>", 'status":-1', ":404")):
+            file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
+            print("\n\n")
+            print("URL: ", url)
+            print("Method: ", colored(method, 'red', attrs=["bold"]))
+            print("HTTP CODE: ", res_code)
+            print("SIZE: ", len(res_text))
+            print("RAW: ", colored(res_text, 'red', attrs=["bold"]))
+            print("\n\n")
+        else:
+            file.write(url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n')
+        file.close()
+    finally:
+        print_lock.release() 
 
 
 
@@ -91,6 +96,9 @@ def find_base_api(url,res_text):
                         return 
                     baseAPI=baseAPI[0]
                     return 
+                if "//" in baseAPI[0]:
+                    baseAPI = remove_url_params(url) + urlsplit(baseAPI[0]).path
+                    return
                 if baseAPI[0][0] != '/' :
                     baseAPI[0] = '/' + baseAPI[0]
                 baseAPI=remove_url_params(url)+baseAPI[0]
@@ -106,140 +114,6 @@ def find_base_api(url,res_text):
                 continue
         baseAPI = remove_url_params(url)
 
-
-
-
-def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_type="",change_domain=""):
-    try:     
-        global reg_match
-        global baseAPI
-        global baseAPI_list
-        global js_black_list
-        global rel_fliter
-        guess = []
-        if baseAPI == "":
-            find_base_api(js_link,res_text)
-        if change_domain:
-                baseAPI = change_domain
-        if res_text == "":
-            res_text = make_request(url=js_link,token=token,single_request=True,auth_type=auth_type).text
-        if user_set_base != None:
-            baseAPI = user_set_base.replace(" ","")
-            if change_domain:
-                baseAPI = (change_domain+baseAPI)
-            else:
-                baseAPI = remove_url_params(js_link)+baseAPI
-        
-        print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI)
-
-        print("\n[+] Requesting Apis,this will take a moment...\n")
-        match_count = 0
-        guess_url = ""
-        for match in reg_match:
-            count = 0
-            match_count += 1
-            file_path_match = re.findall(match, res_text,re.IGNORECASE)
-            if file_path_match:
-                for rel_path in file_path_match:
-                    if rel_path not in js_black_list and rel_path not in rel_fliter:
-                        rel_fliter.append(rel_path)
-                        count += 1
-                        sent = baseAPI
-                        if sent[-1] == '/':
-                            sent = sent.rstrip('/')
-                        if rel_path[0] != '/':
-                            rel_path = '/'+rel_path
-                        rel_path = rel_path.replace("post ","")
-                        if "/api" not in rel_path or "api/" not in rel_path:
-                            guess_0 = sent+"/api"+rel_path 
-                            guess_1 = sent+"/api/v1"+rel_path
-                            guess_2 = sent+"/api/v2"+rel_path
-                            guess_3 = sent+"/api/v3"+rel_path
-                            guess = [guess_0,guess_1,guess_2,guess_3]
-                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete"]):
-                            continue                                 
-                        final_req_url = sent+rel_path
-                        
-                        if all( c.isupper() for c in final_req_url[-5:]) or len(final_req_url) < 120:
-                            url_with_random_p = final_req_url+'/'+"4321"
-
-                            make_request(url=final_req_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-
-                            make_request(url=url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                            if len(guess) != 0:
-                                for guess_url in guess:
-                                    if all( c.isupper() for c in guess_url[-5:]) or len(guess_url) < 120 :
-                                        if guess_url:
-                                            guess_url_with_random_p = guess_url + "1234" # 固定数字防止后面重复访问
-                                            make_request(url=guess_url,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-                                            make_request(url=guess_url_with_random_p,token=token,auth_type=auth_type,num=count,total=len(file_path_match),match_count=match_count)
-    except Exception as e:
-        print("\n")
-        print(colored("[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
-        pass
-
-
-
-
-def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",change_domain=""):
-    try:
-        url = url.replace(" ","")
-        global total_js 
-        global reg_match
-        print(colored("[~] May the force be with you ; )\n\n","red",attrs=["bold"]))
-        print("[+] Total regex num:\t",len(reg_match))
-        response = make_request(url=url,token=token,auth_type=auth_type,single_request=True)
-        url = remove_url_params(url) # 访问用户提供的URL之后取netloc
-        if keep_path:
-            url = url + keep_path
-        if response.ok:
-            soup = BeautifulSoup(response.content, "html.parser")
-            tags_and_attrs = [("script", "src"), ("link", "href")]
-            for tag, attr in tags_and_attrs:
-                for js in soup.find_all(tag, {attr: True}):
-                    if js[attr] and (".js" in js[attr]):
-                        js_url = js[attr]
-                        while './' in js_url:
-                            js_url = js_url.replace("./","/")
-                            if '//' in js_url:
-                                js_url = js_url.replace("//","/")
-                        if "://" not in js_url:
-                            if url[-1] != '/':
-                                url += '/'
-                            if js_url[0] == '/':
-                                js_url = js_url.lstrip('/')
-                            if js_url.startswith("./"):
-                                js_url = js_url[2:]
-                            js_url = url + js_url
-                        if urlsplit(js_url).netloc != urlsplit(url).netloc:  # 用来跳过那些第三方的JS，比如JS中调用了高德地图等。
-                                continue
-                        if js_url not in total_js:
-                            total_js.append(js_url)
-            for i in total_js:
-                if "config" in i:
-                    print(colored("\n\n"+"[+] "+i,"yellow"))
-                    js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
-                    find_hidden_js(i,js_response.text)
-                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
-                    total_js.remove(i)
-                    break
-                elif "app" in i:
-                    print(colored("\n"+"[+] "+i,"yellow"))
-                    js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
-                    find_hidden_js(i,js_response.text)
-                    get_apis_from_js_link(i,js_response.text,auth_type=auth_type,token=token,user_set_base=user_set_base,change_domain=change_domain)
-                    total_js.remove(i)
-                    break
-            for j in total_js:
-                print(colored("\n\n"+"[+] "+j,"yellow"))
-                js_response = make_request(url=j,token=token,auth_type=auth_type,single_request=True)
-                find_hidden_js(j,js_response.text)
-                get_apis_from_js_link(j,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base,change_domain=change_domain)
-        else:
-            print(colored("[!] ERR:\t"+url+'\t'+str(response.status_code)+"\t"+response.reason,"green")) 
-    except Exception as e:
-        print(colored("[!] *F: auto_find_directory, ERR: "+str(e),"green"))
-        pass
 
 
 def find_hidden_js(url,res_text):
@@ -284,6 +158,150 @@ def find_hidden_js(url,res_text):
                     total_js.append(domain)
                     domain = remove_url_params(url)
 
+
+
+def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_type="",change_domain="",custom_threads_num=10):
+    try:     
+        global reg_match
+        global baseAPI
+        global js_black_list
+        global rel_fliter
+
+        guess = []
+        threads = []
+        path_req = []
+        if baseAPI == "":
+            find_base_api(js_link,res_text)
+        if change_domain:
+                baseAPI = change_domain
+        if res_text == "":
+            res_text = make_request(url=js_link,token=token,single_request=True,auth_type=auth_type).text
+        if user_set_base != None:
+            baseAPI = user_set_base.replace(" ","")
+            if change_domain:
+                baseAPI = (change_domain+baseAPI)
+            else:
+                baseAPI = remove_url_params(js_link)+baseAPI
+        
+        print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI)
+
+        print("\n[+] Requesting Apis,this will take a moment...\n")
+        guess_url = ""
+
+        count = 1
+        for match in reg_match:
+            file_path_match = re.findall(match, res_text,re.IGNORECASE)
+            if file_path_match:
+                file_path_match = list(set(file_path_match))
+                for rel_path in file_path_match:
+                    if rel_path not in js_black_list and rel_path not in rel_fliter:
+                        rel_fliter.append(rel_path)
+                        sent = baseAPI
+                        if sent[-1] == '/':
+                            sent = sent.rstrip('/')
+                        if not (rel_path[0] == '/' or rel_path.startswith("post ") or rel_path.startswith("get ")):
+                            rel_path = '/'+rel_path
+
+                        rel_path = rel_path.replace("post ","")
+                        rel_path = rel_path.replace("get ","")
+                        rel_path = rel_path.replace("POST ","")
+                        rel_path = rel_path.replace("GET ","")
+
+                        if "/api" not in rel_path or "api/" not in rel_path:
+
+                            guess_0 = sent+"/api"+rel_path 
+                            guess_1 = sent+"/api/v1"+rel_path.rstrip('/')
+                            guess_2 = sent+"/api/v2"+rel_path.rstrip('/') 
+                            guess_3 = sent+"/api/v3"+rel_path.rstrip('/') 
+                            guess = [guess_0,guess_1,guess_2,guess_3]
+                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete"]):
+                            continue                                 
+                        final_req_url = sent+rel_path                        
+                        if len(final_req_url) < 120:
+                            path_req.append(final_req_url) 
+                            url_with_random_p = final_req_url+"/4321"
+                            path_req.append(url_with_random_p)
+
+                            if len(guess) != 0:
+                                for guess_url in guess:
+                                    if len(guess_url) < 120 :
+                                        if guess_url and guess_url not in path_req:
+                                            guess_url_with_random_p = guess_url + "/1234" # 固定数字防止后面重复访问
+                                            path_req.append(guess_url)
+                                            path_req.append(guess_url_with_random_p)
+                    path_req = list(set(path_req))
+        batch_size = custom_threads_num
+        for i in path_req:
+            t = threading.Thread(target=make_request, kwargs={'url': i,'token': token, 'auth_type': auth_type, 'num':count,'total':len(path_req)})
+            count += 1
+            threads.append(t)
+        for i in range(0, len(threads), batch_size):
+            batch_threads = threads[i:i+batch_size]
+            for thread in batch_threads:
+                thread.start()
+            for thread in batch_threads:
+                thread.join()
+    except Exception as e:
+        print(colored("\n\n[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
+        pass
+
+
+
+
+def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",change_domain="",custom_threads_num=10):
+    try:
+        url = url.replace(" ","")
+        global total_js 
+        global reg_match
+        print(colored("[~] May the force be with you ; )\n\n","red",attrs=["bold"]))
+        response = make_request(url=url,token=token,auth_type=auth_type,single_request=True)
+        url = remove_url_params(url) # 访问用户提供的URL之后取netloc
+        if keep_path:
+            url = url + keep_path
+        if response:
+            soup = BeautifulSoup(response.content, "html.parser")
+            tags_and_attrs = [("script", "src"), ("link", "href")]
+            for tag, attr in tags_and_attrs:
+                for js in soup.find_all(tag, {attr: True}):
+                    if js[attr] and (".js" in js[attr]):
+                        js_url = js[attr]
+                        while './' in js_url:
+                            js_url = js_url.replace("./","/")
+                            if '//' in js_url:
+                                js_url = js_url.replace("//","/")
+                        if "://" not in js_url:
+                            if url[-1] != '/':
+                                url += '/'
+                            if js_url[0] == '/':
+                                js_url = js_url.lstrip('/')
+                            if js_url.startswith("./"):
+                                js_url = js_url[2:]
+                            js_url = url + js_url
+                        if urlsplit(js_url).netloc != urlsplit(url).netloc:  # 用来跳过那些第三方的JS，比如JS中调用了高德地图等。
+                                continue
+                        if js_url not in total_js:
+                            total_js.append(js_url)
+            for i in total_js:
+                if "app" in i or "config" in i:
+                    print(colored("\n\n"+"[+] "+i,"yellow"))
+                    js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
+                    find_base_api(i,js_response.text)
+                    find_hidden_js(i,js_response.text)
+                    get_apis_from_js_link(i,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base,change_domain=change_domain,custom_threads_num=custom_threads_num)
+                    total_js.remove(i)
+                    # break
+            for i in total_js:
+                print(colored("\n\n"+"[+] "+i,"yellow"))
+                js_response = make_request(url=i,token=token,auth_type=auth_type,single_request=True)
+                find_hidden_js(i,js_response.text)
+                get_apis_from_js_link(i,js_response.text,token=token,auth_type=auth_type,user_set_base=user_set_base,change_domain=change_domain,custom_threads_num=custom_threads_num)
+        else:
+            print(colored("[!] ERR:\t"+url+'\t'+str(response.status_code)+"\t"+response.reason,"green")) 
+    except Exception as e:
+        print(colored("\n\n[!] *F: auto_find_directory, ERR: "+str(e),"green"))
+        pass
+
+
     
 
 def fuzzing_complete():
@@ -313,12 +331,19 @@ if __name__ == '__main__':
         parser.add_argument("-t", "--token", dest="token", help="token value")
         parser.add_argument("-k", "--keep", dest="keep_path", help="keep the path of user input URL.")
         parser.add_argument("-c", "--change", dest="change_domain", help="Change domain incase the interface is different.")
+        parser.add_argument("-T", "--Thread", dest="threads_num",type=int,default=10,help="Custom threads number.")
 
         args = parser.parse_args()
         if args.autourl:
-            auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain)
+            if args.threads_num != 10:
+                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain,custom_threads_num=args.threads_num)
+            else:
+                auto_find_directory(url=args.autourl,auth_type=args.auth_type,token=args.token,user_set_base=args.url_base,keep_path=args.keep_path,change_domain=args.change_domain)
         elif args.single_js:
-            get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain,) 
+            if args.threads_num != 10:
+                get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain,custom_threads_num=args.threads_num)
+            else:
+                get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain) 
         fuzzing_complete()
     except KeyboardInterrupt:
         print("\n")
