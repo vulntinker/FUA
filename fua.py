@@ -8,16 +8,17 @@ from urllib.parse import urlsplit
 from termcolor import colored
 import argparse
 import threading
+import os
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # reg_match = r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_-]+(?:\s*/\s*[a-zA-Z0-9_-]+)*)'
 reg_match = [
-    r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
-    r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
-    r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
-    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)"',
-    r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
-    r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-]+)*)'",
+    r'"(/[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"(post /[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"(get /[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"([a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r"'(/[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)'",
+    r"'([a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)'",
 ]
 # Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
@@ -34,7 +35,8 @@ print_lock = threading.Lock()
 
 def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request=False):
     try:
-        headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
+        headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.32(0x18002035) NetType/WIFI Language/zh_CN'}
+        
         if token != None and auth_type != None:
             headers.update({auth_type:token})
         
@@ -53,12 +55,12 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
 
 
 def echo_res(url, method, res_code, res_text, current_num, total_num):
-    print_lock.acquire() 
+    print_lock.acquire() # 获取锁
     try:
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>", "</script>", ":401", "<title>", 'status":-1', ":404")):
+        if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"')):
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -71,7 +73,7 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
             file.write(url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n')
         file.close()
     finally:
-        print_lock.release() 
+        print_lock.release() # 释放锁
 
 
 
@@ -89,6 +91,10 @@ def find_base_api(url,res_text):
     if baseAPI == "":
         for m in base_url_match:
             baseAPI = re.findall(m, res_text,re.IGNORECASE)
+            for i in baseAPI:
+                tmp = i
+                i = i.replace("./","")
+                baseAPI[baseAPI.index(tmp)] = i
             if len(baseAPI) == 1 and baseAPI[0] != " " and baseAPI[0] != "":
                 if "http:" in baseAPI[0] or "https:" in baseAPI[0]:
                     if urlsplit(baseAPI[0]).netloc != urlsplit(url).netloc: # 如何域名不同则设置为输入的域名
@@ -214,7 +220,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             guess_2 = sent+"/api/v2"+rel_path.rstrip('/') 
                             guess_3 = sent+"/api/v3"+rel_path.rstrip('/') 
                             guess = [guess_0,guess_1,guess_2,guess_3]
-                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete"]):
+                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete","del","Del"]):
                             continue                                 
                         final_req_url = sent+rel_path                        
                         if len(final_req_url) < 120:
@@ -282,7 +288,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
                         if js_url not in total_js:
                             total_js.append(js_url)
             for i in total_js:
-                if "app" in i or "config" in i:
+                if "app" in i or "config" in i or "index" in i:
                     print(colored("\n\n"+"[+] "+i,"yellow"))
                     js_response = make_request(url=i,auth_type=auth_type,token=token,single_request=True)
                     find_base_api(i,js_response.text)
@@ -306,9 +312,13 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
 
 def fuzzing_complete():
     print("\n")
-    print(colored("[*] Api Fuzzing Completed :)","yellow"))
+    print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
 
 
+def dirsearch():
+    cmd = "dirsearch -u " + remove_url_params(args.autourl) + " -i 200,500 --full-url"
+    print(cmd)
+    os.system(cmd)
 
 if __name__ == '__main__':
     header = '''
@@ -322,6 +332,7 @@ if __name__ == '__main__':
                                     \t\t\t    by vulntinker (vulntinker@gmail.com)
     '''
     print(colored(header, 'red',attrs=["bold"]))
+    headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument("-a", "--auto", dest="autourl", help="The site URL that contians JS links.")
@@ -343,8 +354,11 @@ if __name__ == '__main__':
             if args.threads_num != 10:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain,custom_threads_num=args.threads_num)
             else:
-                get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain) 
+                get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
+        checkstatus = requests.get(args.autourl,headers=headers,verify=False)
+        if checkstatus.status_code != 502 and checkstatus.status_code != 400:
+            dirsearch()
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
