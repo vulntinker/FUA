@@ -13,12 +13,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # reg_match = r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_-]+(?:\s*/\s*[a-zA-Z0-9_-]+)*)'
 reg_match = [
-    r'"(/[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"(post /[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"(get /[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"([a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r"'(/[a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)'",
-    r"'([a-zA-Z0-9_+-?]+/[a-zA-Z0-9_+-?]+(?:/[a-zA-Z0-9_+-?]+)*)'",
+    r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
+    r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
+    r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
 ]
 # Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
