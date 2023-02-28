@@ -52,9 +52,9 @@ pip install beautifulsoup4 requests termcolor argparse
 
 # 使用
 
-### -a 参数
+### -u 参数
 
-可以直接将任意形式的URL丢入-a，会自动获取网页中存在的JS和可能隐藏在JS中的一些JS相对路径。
+可以直接将任意形式的URL丢入-u，会自动获取网页中存在的JS和可能隐藏在JS中的一些JS相对路径。
 
 ![image-20230210181048700](README.assets/image-20230210181048700.png)
 
@@ -63,9 +63,9 @@ pip install beautifulsoup4 requests termcolor argparse
 如 http(s)://example.com 中，js存在的路径是分为pc或mobile，那么可以使用
 
 ```shell
-python fua.py -a http://example.com -k /pc
+python fua.py -u http://example.com -k /pc
 
-python fua.py -a http://example.com -k /mobile
+python fua.py -u http://example.com -k /mobile
 ```
 
 则就相当于访问到了http://example.com/pc 目录下的JS

@@ -201,6 +201,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 file_path_match = list(set(file_path_match))
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
+                        if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
+                            continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
                         if sent[-1] == '/':
@@ -335,7 +337,7 @@ if __name__ == '__main__':
     headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
     try:
         parser = argparse.ArgumentParser()
-        parser.add_argument("-a", "--auto", dest="autourl", help="The site URL that contians JS links.")
+        parser.add_argument("-u", "--url", dest="autourl", help="The site URL that contians JS links.")
         parser.add_argument("-A", "--auth", dest="auth_type", help="Auth type:AccessToken, Cookie,Authorization")
         parser.add_argument("-j", "--js", dest="single_js", help="Single JS link to proceed.")
         parser.add_argument("-b", "--base", dest="url_base", help="baseURL of the site incase the programme missed it.")
