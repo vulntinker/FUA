@@ -317,11 +317,6 @@ def fuzzing_complete():
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
 
 
-def dirsearch():
-    cmd = "dirsearch -u " + remove_url_params(args.autourl) + " -i 200,500 --full-url"
-    print(cmd)
-    os.system(cmd)
-
 if __name__ == '__main__':
     header = '''
 \t\t\t _______   __    __       ___          
@@ -358,9 +353,6 @@ if __name__ == '__main__':
             else:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
-        checkstatus = requests.get(args.autourl,headers=headers,verify=False)
-        if checkstatus.status_code != 502 and checkstatus.status_code != 400:
-            dirsearch()
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
