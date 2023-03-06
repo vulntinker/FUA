@@ -110,12 +110,16 @@ def find_base_api(url,res_text):
                 baseAPI=remove_url_params(url)+baseAPI[0]
                 return 
             elif len(baseAPI) == 2 and (baseAPI[1] == "" or baseAPI[1] == " "):
-                if "http://" in baseAPI[0] or "https://" in baseAPI[0]:
-                    baseAPI=urlsplit(baseAPI[0]).path
-                    return 
+                if urlsplit(baseAPI[0]).path != "":
+                    if "http://" in baseAPI[0] or "https://" in baseAPI[0]:
+                        baseAPI=urlsplit(baseAPI[0]).path
+                        return 
+                    else:
+                        baseAPI=remove_url_params(url)+baseAPI[0]
+                        return 
                 else:
-                    baseAPI=remove_url_params(url)+baseAPI[0]
-                    return 
+                    baseAPI = baseAPI[0]
+                    return baseAPI
             else: 
                 continue
         baseAPI = remove_url_params(url)
