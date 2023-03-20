@@ -205,7 +205,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 file_path_match = list(set(file_path_match))
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
-                        if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
+                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg"]):
                             continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
