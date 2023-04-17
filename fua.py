@@ -20,6 +20,10 @@ reg_match = [
     r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
     r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
 ]
+
+# reg_match = [
+#     r"['\"]?((?:post|get)?\s/[\w+-]+(?:/[\w+-?]+)*)['\"]?"
+# ]
 # Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
 baseAPI = ""
@@ -57,10 +61,11 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
 def echo_res(url, method, res_code, res_text, current_num, total_num):
     print_lock.acquire() # 获取锁
     try:
+        # global rel_fliter
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200, 500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"')):
+        if res_code in (200,301,302) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"')):
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -70,6 +75,7 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
             print("RAW: ", colored(res_text, 'red', attrs=["bold"]))
             print("\n\n")
         else:
+            # rel_fliter.append(urlsplit(url).path)
             file.write(url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n')
         file.close()
     finally:
@@ -133,18 +139,29 @@ def find_hidden_js(url,res_text):
     domain = remove_url_params(url)
     pattern = r'"chunk-\w{8}":"\w{8}"'
     matches = re.findall(pattern, res_text)
-    if matches:
-        for i in matches:
-            i = i.replace('"',"")
-            i = i.replace(':',".")
-            i = i + '.js'
-            if i[0] != '/':
-                i = "/" + i
-            js_path = urlsplit(url).path
-            js_path = "/".join(js_path.split("/")[:-1])
-            chunk_js = domain + js_path + i
-            if chunk_js not in total_js:
-                total_js.append(chunk_js)
+    pattern_1 = r"/^[0-9a-f]{8}\.[0-9]{13}\.js$/"
+    m2 = re.findall(pattern_1,res_text)
+    prefix = ["/static/js/","/wechat_wujin/js/"]
+    # prefix = ["/wechat_wujin/js/]"
+    if matches or m2:
+        if matches:
+            matches = matches
+        if m2:
+            matches = m2
+        for i in prefix:
+            for j in matches:
+                j = j.replace('"',"")
+                j = j.replace(':',".")
+                j = j + '.js'
+                j = i + j
+                if j[0] != '/':
+                    j = "/" + j
+                # js_path = urlsplit(url).path
+                # js_path = "/".join(js_path.split("/")[:-1])
+                # chunk_js = domain + js_path + i
+                chunk_js = domain + j
+                if chunk_js not in total_js:
+                    total_js.append(chunk_js)
 
     hidden_js = []
     find_hidden_js = re.findall(js_match, res_text,re.IGNORECASE)
@@ -205,7 +222,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 file_path_match = list(set(file_path_match))
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
-                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg"]):
+                        # if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
+                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue","gif"]):
                             continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
@@ -231,14 +249,20 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                         final_req_url = sent+rel_path                        
                         if len(final_req_url) < 120:
                             path_req.append(final_req_url) 
-                            url_with_random_p = final_req_url+"/4321"
+                            if "=" in final_req_url:
+                                url_with_random_p = final_req_url+"4321"
+                            else:
+                                url_with_random_p = final_req_url+"/4321"
                             path_req.append(url_with_random_p)
 
                             if len(guess) != 0:
                                 for guess_url in guess:
                                     if len(guess_url) < 120 :
                                         if guess_url and guess_url not in path_req:
-                                            guess_url_with_random_p = guess_url + "/1234" # 固定数字防止后面重复访问
+                                            if "=" in guess_url:
+                                                guess_url_with_random_p = guess_url + "1234"
+                                            else:
+                                                guess_url_with_random_p = guess_url + "/1234" 
                                             path_req.append(guess_url)
                                             path_req.append(guess_url_with_random_p)
                     path_req = list(set(path_req))
@@ -319,7 +343,6 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
 def fuzzing_complete():
     print("\n")
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
-
 
 if __name__ == '__main__':
     header = '''
