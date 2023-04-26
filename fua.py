@@ -11,20 +11,17 @@ import threading
 import os
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# reg_match = r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_-]+(?:\s*/\s*[a-zA-Z0-9_-]+)*)'
+# reg_match = [r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_+-=?]+(?:\s*/\s*[a-zA-Z0-9_+-=?]+)*)']
 reg_match = [
-    r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)"',
-    r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
-    r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?]+)*)'",
+    r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
+    r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
+    r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
+    r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
+    r"'(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?=]+)*)'",
+    r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-]+(?:/[a-zA-Z0-9_+-?=]+)*)'"
 ]
 
-# reg_match = [
-#     r"['\"]?((?:post|get)?\s/[\w+-]+(?:/[\w+-?]+)*)['\"]?"
-# ]
-# Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
+
 
 baseAPI = ""
 baseAPI_list = []
@@ -65,7 +62,7 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200,301,302) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"')):
+        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div")):
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -141,7 +138,7 @@ def find_hidden_js(url,res_text):
     matches = re.findall(pattern, res_text)
     pattern_1 = r"/^[0-9a-f]{8}\.[0-9]{13}\.js$/"
     m2 = re.findall(pattern_1,res_text)
-    prefix = ["/static/js/","/wechat_wujin/js/"]
+    prefix = ["/static/js/"]
     # prefix = ["/wechat_wujin/js/]"
     if matches or m2:
         if matches:
@@ -223,7 +220,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
                         # if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
-                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue","gif"]):
+                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue",".gif",".jpeg",".css",".js",".bmp",".cur"]):
                             continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
@@ -343,6 +340,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
 def fuzzing_complete():
     print("\n")
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
+
 
 if __name__ == '__main__':
     header = '''
