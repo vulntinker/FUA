@@ -21,7 +21,10 @@ reg_match = [
     r"'([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)'"
 ]
 
-
+# reg_match = [
+#     r"['\"]?((?:post|get)?\s/[\w+-]+(?:/[\w+-?]+)*)['\"]?"
+# ]
+# Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
 
 baseAPI = ""
 baseAPI_list = []
@@ -248,6 +251,11 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             path_req.append(final_req_url) 
                             if "=" in final_req_url:
                                 url_with_random_p = final_req_url+"4321"
+                                url_with_random_p_w = final_req_url + "C:\Windows\win.ini"
+                                url_with_random_p_l = final_req_url + "/etc/passwd"
+                                guess_url_with_random_p = guess_url + "C:\Windows\win.ini"
+                                path_req.append(url_with_random_p_w)
+                                path_req.append(url_with_random_p_l)
                             else:
                                 url_with_random_p = final_req_url+"/4321"
                             path_req.append(url_with_random_p)
@@ -257,6 +265,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                                     if len(guess_url) < 120 :
                                         if guess_url and guess_url not in path_req:
                                             if "=" in guess_url:
+                                                guess_url_with_random_p = guess_url + "C:\Windows\win.ini"
+                                                guess_url_with_random_p = guess_url + "/etc/passwd"
                                                 guess_url_with_random_p = guess_url + "1234"
                                             else:
                                                 guess_url_with_random_p = guess_url + "/1234" 
@@ -342,6 +352,7 @@ def fuzzing_complete():
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
 
 
+
 if __name__ == '__main__':
     header = '''
 \t\t\t _______   __    __       ___          
@@ -378,6 +389,7 @@ if __name__ == '__main__':
             else:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
+
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
