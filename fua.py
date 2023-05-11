@@ -45,12 +45,12 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
             headers.update({auth_type:token})
         
         if single_request:
-            res = requests.get(url=url,headers=headers,verify=False,timeout=60)
+            res = requests.get(url=url,headers=headers,verify=False,timeout=30)
             return res
-        response_get = requests.get(url, headers=headers,verify=False,timeout=60)
+        response_get = requests.get(url, headers=headers,verify=False,timeout=30)
         echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total)
         
-        response_post = requests.post(url, json=data, headers=headers,verify=False,timeout=60)
+        response_post = requests.post(url, json=data, headers=headers,verify=False,timeout=30)
         echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=response_post.text,current_num=num,total_num=total)
         return response_get,response_post
     except Exception as e:
@@ -92,7 +92,7 @@ def remove_url_params(url):
 def find_base_api(url,res_text):
     global baseAPI
     global baseAPI_list
-    base_url_match = ['baseurl:"(.*?)"','baseurl: "(.*?)"','baseapi:"(.*?)"','baseapi: "(.*?)"']
+    base_url_match = ['baseurl="(.*?)"','baseurl:"(.*?)"','baseurl: "(.*?)"','baseapi:"(.*?)"','baseapi: "(.*?)"','baseapi="(.*?)"']
     c = 1
     if baseAPI == "":
         for m in base_url_match:
@@ -129,6 +129,7 @@ def find_base_api(url,res_text):
             else: 
                 continue
         baseAPI = remove_url_params(url)
+
 
 
 
@@ -200,12 +201,13 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         guess = []
         threads = []
         path_req = []
-        if baseAPI == "":
-            find_base_api(js_link,res_text)
+
         if change_domain:
                 baseAPI = change_domain
         if res_text == "":
             res_text = make_request(url=js_link,token=token,single_request=True,auth_type=auth_type).text
+        if baseAPI == "":
+            find_base_api(js_link,res_text)
         if user_set_base != None:
             baseAPI = user_set_base.replace(" ","")
             if change_domain:
@@ -225,13 +227,15 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 file_path_match = list(set(file_path_match))
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
-                        # if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
                         if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue",".gif",".jpeg",".css",".js",".mp3",".mp4",".bmp",".cur",".otf"]):
                             continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
-                        if sent[-1] == '/':
-                            sent = sent.rstrip('/')
+                        if '/' in sent:
+                            if sent[-1] == '/':
+                                sent = sent.rstrip('/')
+                        # if sent == "":
+                        #     sent =
                         if not (rel_path[0] == '/' or rel_path.startswith("post ") or rel_path.startswith("get ")):
                             rel_path = '/'+rel_path
 
