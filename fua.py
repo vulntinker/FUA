@@ -65,7 +65,7 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限")):
+        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限","404")):
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -134,18 +134,19 @@ def find_base_api(url,res_text):
 
 def find_hidden_js(url,res_text):
     global total_js
-    js_match = r'"([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"'
+    js_match = [r"'([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)'",r'"([a-zA-Z0-9_+-.]+/[a-zA-Z0-9_+-.]+(?:/[a-zA-Z0-9_+-.]+)*)"']
 
     domain = remove_url_params(url)
     pattern = r'"chunk-\w{8}":"\w{8}"'
     matches = re.findall(pattern, res_text)
-    pattern_1 = r"/^[0-9a-f]{8}\.[0-9]{13}\.js$/"
-    m2 = re.findall(pattern_1,res_text)
+    pattern_js = r"/^[0-9a-f]{8}\.[0-9]{13}\.js$/"
+    # pattern_js = r"^(\/)?\w+(\/\w+)*\/\w+\.js$"
+    m2 = re.findall(pattern_js,res_text)
     prefix = ["/static/js/"]
     if matches or m2:
         if matches:
             matches = matches
-        if m2:
+        elif m2:
             matches = m2
         for i in prefix:
             for j in matches:
@@ -160,26 +161,31 @@ def find_hidden_js(url,res_text):
                     total_js.append(chunk_js)
 
     hidden_js = []
-    find_hidden_js = re.findall(js_match, res_text,re.IGNORECASE)
-    if find_hidden_js:
-        for j in find_hidden_js:
-            if j not in hidden_js and ".js" in j:
-                domain = remove_url_params(url)
-                while "./" in j:
-                    j = j.replace("./","/")
-                    if "//" in j:
-                        j = j.replace("//","/")
-                if j[0] != '/':
-                    j = '/' + j
-                if j.count('/') <= 1:
-                    js_path = urlsplit(url).path
-                    js_path = "/".join(js_path.split("/")[:-1])
-                    domain = domain + js_path + j
-                else:
-                    domain = domain+j
-                if domain not in total_js:
-                    total_js.append(domain)
+    for jm in js_match:
+        find_hidden_js = re.findall(jm, res_text,re.IGNORECASE)
+        if find_hidden_js:
+            for j in find_hidden_js:
+                if j not in hidden_js and ".js" in j:
                     domain = remove_url_params(url)
+                    while "./" in j:
+                        j = j.replace("./","/")
+                        if "//" in j:
+                            j = j.replace("//","/")
+                    if j[0] != '/':
+                        j = '/' + j
+                    if j.count('/') <= 1:
+                        js_path = urlsplit(url).path
+                        js_path = "/".join(js_path.split("/")[:-1])
+                        domain_f = domain + js_path + j
+                        if domain_f not in total_js:
+                            total_js.append(domain_f)
+                    else:
+                        rel,__ = os.path.split(urlsplit(url).path)
+                        while rel.count('/') != 1:
+                            rel,__ = os.path.split(rel)
+                            tmp_domain = domain+rel+j
+                        if tmp_domain not in total_js:
+                            total_js.append(tmp_domain)
 
 
 
@@ -190,7 +196,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         global js_black_list
         global rel_fliter
         
-        parameters = ["?id=1","?type=01&page=1&size=30","?type=1","?page=1","?size=10","?list=10","?info=1","?user=1","?user=admin","?logintype=1","?aid=123","?uid=123"]
+        parameters = ["?id=1","?type=01&page=1&size=30","?type=1","?page=1","?size=10","?list=10","?info=1","?user=1","?user=admin","?logintype=1","?aid=123","?uid=123","?file=C:\Windows\win.ini","?filename=C:\Windows\win.ini","?file_name=C:\Windows\win.ini","?file=/etc/passwd","?filename=/etc/passwd","?file_name=/etc/passwd"]
         guess = []
         threads = []
         path_req = []
@@ -332,7 +338,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
                             if js_url.startswith("./"):
                                 js_url = js_url[2:]
                             js_url = url + js_url
-                        if urlsplit(js_url).netloc != urlsplit(url).netloc:  # 用来跳过那些第三方的JS，比如JS中调用了高德地图等。
+                        if urlsplit(js_url).netloc != urlsplit(url).netloc:  
                                 continue
                         if js_url not in total_js:
                             total_js.append(js_url)
@@ -387,7 +393,7 @@ if __name__ == '__main__':
         parser.add_argument("-t", "--token", dest="token", help="token value")
         parser.add_argument("-k", "--keep", dest="keep_path", help="keep the path of user input URL.")
         parser.add_argument("-c", "--change", dest="change_domain", help="Change domain incase the interface is different.")
-        parser.add_argument("-T", "--Thread", dest="threads_num",type=int,default=10,help="Custom threads number.")
+        parser.add_argument("-T", "--Thread", dest="threads_num",type=int,default=30,help="Custom threads number.")
 
         args = parser.parse_args()
         if args.autourl:
@@ -401,6 +407,7 @@ if __name__ == '__main__':
             else:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
+
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
