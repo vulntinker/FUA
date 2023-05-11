@@ -32,7 +32,7 @@ req_url = []
 total_js = []
 rel_fliter = []
 js_black_list = [
-    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM","application/json","assets/profile","text/ng-template","multipart/form-data","pan/move","lineX/Y"
+    "text/plain","+n/100+","text/plain","a/i","DD/MM/YYYY","YYYY/MM/DD","MM/D/YYYY","application/x-www-form-urlencoded","DD/M/YYYY","text/javascript","text/xml","M/D/yy","a/b","image/svg+xml","YYYY/M/D","text/css","D/M/YYYY","MM/DD/YYYY","D/JM","application/json","assets/profile","text/ng-template","multipart/form-data","pan/move","lineX/Y","application/x-www-form-urlencoded;charset="
 ]
 
 print_lock = threading.Lock()
@@ -65,7 +65,7 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div")):
+        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限")):
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -193,7 +193,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         global baseAPI
         global js_black_list
         global rel_fliter
-
+        
+        parameters = ["?id=1","?type=01&page=1&size=30","?type=1","?page=1","?size=10","?list=10","?info=1","?user=1","?user=admin","?logintype=1","?aid=123","?uid=123"]
         guess = []
         threads = []
         path_req = []
@@ -212,7 +213,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         
         print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI)
 
-        print("\n[+] Requesting Apis,this will take a moment...\n")
+        print("\n[+] Fuzzing apis, good luck ;-)\n")
         guess_url = ""
 
         count = 1
@@ -223,7 +224,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
                         # if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
-                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue",".gif",".jpeg",".css",".js",".bmp",".cur"]):
+                        if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue",".gif",".jpeg",".css",".js",".mp3",".mp4",".bmp",".cur",".otf"]):
                             continue
                         rel_fliter.append(rel_path)
                         sent = baseAPI
@@ -232,32 +233,46 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                         if not (rel_path[0] == '/' or rel_path.startswith("post ") or rel_path.startswith("get ")):
                             rel_path = '/'+rel_path
 
+                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete","del","Del"]):
+                            continue 
+
                         rel_path = rel_path.replace("post ","")
                         rel_path = rel_path.replace("get ","")
                         rel_path = rel_path.replace("POST ","")
                         rel_path = rel_path.replace("GET ","")
 
-                        if "/api" not in rel_path or "api/" not in rel_path:
-
-                            guess_0 = sent+"/api"+rel_path 
-                            guess_1 = sent+"/api/v1"+rel_path.rstrip('/')
-                            guess_2 = sent+"/api/v2"+rel_path.rstrip('/') 
-                            guess_3 = sent+"/api/v3"+rel_path.rstrip('/') 
-                            guess = [guess_0,guess_1,guess_2,guess_3]
-                        if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete","del","Del"]):
-                            continue                                 
-                        final_req_url = sent+rel_path                        
+                               
+                        final_req_url = sent + rel_path                       
                         if len(final_req_url) < 120:
                             path_req.append(final_req_url) 
+
+                            if "/api" not in rel_path or "api/" not in rel_path:
+                                guess_0 = sent+"/api"+rel_path 
+                                guess_1 = sent+"/api/v1"+rel_path.rstrip('/')
+                                guess_2 = sent+"/api/v2"+rel_path.rstrip('/') 
+                                guess_3 = sent+"/api/v3"+rel_path.rstrip('/') 
+                                guess = [guess_0,guess_1,guess_2,guess_3]
+                                for i in guess:
+                                    if "?" not in guess:
+                                        for j in parameters:
+                                            another_shot = i + j
+                                            path_req.append(another_shot)
+
+
+                            if "?" not in final_req_url:
+                                for t_p in parameters:
+                                    normal_url_with_parameters = final_req_url + t_p
+                                    path_req.append(normal_url_with_parameters) 
+                            
                             if "=" in final_req_url:
                                 url_with_random_p = final_req_url+"4321"
                                 url_with_random_p_w = final_req_url + "C:\Windows\win.ini"
                                 url_with_random_p_l = final_req_url + "/etc/passwd"
-                                guess_url_with_random_p = guess_url + "C:\Windows\win.ini"
                                 path_req.append(url_with_random_p_w)
                                 path_req.append(url_with_random_p_l)
                             else:
                                 url_with_random_p = final_req_url+"/4321"
+
                             path_req.append(url_with_random_p)
 
                             if len(guess) != 0:
@@ -265,13 +280,14 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                                     if len(guess_url) < 120 :
                                         if guess_url and guess_url not in path_req:
                                             if "=" in guess_url:
-                                                guess_url_with_random_p = guess_url + "C:\Windows\win.ini"
-                                                guess_url_with_random_p = guess_url + "/etc/passwd"
+                                                guess_url_with_random_p_w = guess_url + "C:\Windows\win.ini"
+                                                guess_url_with_random_p_l = guess_url + "/etc/passwd"
                                                 guess_url_with_random_p = guess_url + "1234"
-                                            else:
-                                                guess_url_with_random_p = guess_url + "/1234" 
+                                                path_req.append(guess_url_with_random_p)
+                                                path_req.append(guess_url_with_random_w)
+                                                path_req.append(guess_url_with_random_l)
                                             path_req.append(guess_url)
-                                            path_req.append(guess_url_with_random_p)
+                                            
                     path_req = list(set(path_req))
         batch_size = custom_threads_num
         for i in path_req:
@@ -355,14 +371,14 @@ def fuzzing_complete():
 
 if __name__ == '__main__':
     header = '''
-\t\t\t _______   __    __       ___          
-\t\t\t|   ____| |  |  |  |     /   \         
-\t\t\t|  |__    |  |  |  |    /  ^  \      
-\t\t\t|   __|   |  |  |  |   /  /_\  \       
-\t\t\t|  |      |  `--'  |  /  _____  \  
-\t\t\t|__|       \______/  /__/     \__\ 
-                                    \t\t\t    Fuzzing Unauthorized Api (Beta v1.0)
-                                    \t\t\t    by vulntinker (vulntinker@gmail.com)
+     _______   __    __       ___          
+    |   ____| |  |  |  |     /   \         
+    |  |__    |  |  |  |    /  ^  \      
+    |   __|   |  |  |  |   /  /_\  \       
+    |  |      |  `--'  |  /  _____  \  
+    |__|       \______/  /__/     \__\ 
+                                    \t\tFuzzing Unauthorized Api (Beta)
+                                    \t\tvulntinker (vulntinker@gmail.com)
     '''
     print(colored(header, 'red',attrs=["bold"]))
     headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
@@ -389,7 +405,6 @@ if __name__ == '__main__':
             else:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
-
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
