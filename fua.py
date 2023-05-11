@@ -48,10 +48,23 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
             res = requests.get(url=url,headers=headers,verify=False,timeout=30)
             return res
         response_get = requests.get(url, headers=headers,verify=False,timeout=30)
-        echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total)
+
+        img_resp = "\nThis is an image, pls check it in your broswer.\n"
+        office_resp = "\n\n\n please view this file in your broswer !!! \n\n\n"
+        if response_get.headers.get("Content-Type", "").startswith("image/jpeg"):
+            echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=img_resp,current_num=num,total_num=total)
+        elif response_get.headers.get("Content-Type", "").startswith("application/vnd"):
+            echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=office_resp,current_num=num,total_num=total)
+        else:
+            echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total)
         
         response_post = requests.post(url, json=data, headers=headers,verify=False,timeout=30)
-        echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=response_post.text,current_num=num,total_num=total)
+        if response_post.headers.get("Content-Type", "").startswith("image/jpeg"):
+            echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=img_resp,current_num=num,total_num=total)
+        elif response_post.headers.get("Content-Type", "").startswith("application/vnd"):
+            echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=office_resp,current_num=num,total_num=total)
+        else:
+            echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=response_post.text,current_num=num,total_num=total)
         return response_get,response_post
     except Exception as e:
         print(colored("\n\n[!] Request ERR: "+str(e),"green"))
@@ -217,7 +230,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
         
         print(colored("\n[+] baseAPI|URL: ","red",attrs=["bold"]),baseAPI)
 
-        print("\n[+] Fuzzing apis, good luck ;-)\n")
+        print("\n[+] Fuzzing apis, good luck ; )\n")
         guess_url = ""
 
         count = 1
@@ -227,6 +240,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 file_path_match = list(set(file_path_match))
                 for rel_path in file_path_match:
                     if rel_path not in js_black_list and rel_path not in rel_fliter:
+                        # if ".jpg" in rel_path or ".png" in rel_path or ".svg" in rel_path:
                         if any(x in rel_path for x in [".png", ".svg", ".ttf",".eot", ".woff",".jpg",".vue",".gif",".jpeg",".css",".js",".mp3",".mp4",".bmp",".cur",".otf"]):
                             continue
                         rel_fliter.append(rel_path)
@@ -374,7 +388,6 @@ def fuzzing_complete():
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
 
 
-
 if __name__ == '__main__':
     header = '''
      _______   __    __       ___          
@@ -383,8 +396,9 @@ if __name__ == '__main__':
     |   __|   |  |  |  |   /  /_\  \       
     |  |      |  `--'  |  /  _____  \  
     |__|       \______/  /__/     \__\ 
-                                    \t\tFuzzing Unauthorized Api (Beta)
-                                    \t\tvulntinker (vulntinker@gmail.com)
+    
+    Fuzzing Unauthorized Api (Beta)
+    vulntinker (vulntinker@gmail.com)
     '''
     print(colored(header, 'red',attrs=["bold"]))
     headers = {'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_2 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/13F69 MicroMessenger/6.6.1 NetType/4G Language/zh_CN'}
