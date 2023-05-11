@@ -142,7 +142,6 @@ def find_hidden_js(url,res_text):
     pattern_1 = r"/^[0-9a-f]{8}\.[0-9]{13}\.js$/"
     m2 = re.findall(pattern_1,res_text)
     prefix = ["/static/js/"]
-    # prefix = ["/wechat_wujin/js/]"
     if matches or m2:
         if matches:
             matches = matches
@@ -156,9 +155,6 @@ def find_hidden_js(url,res_text):
                 j = i + j
                 if j[0] != '/':
                     j = "/" + j
-                # js_path = urlsplit(url).path
-                # js_path = "/".join(js_path.split("/")[:-1])
-                # chunk_js = domain + js_path + i
                 chunk_js = domain + j
                 if chunk_js not in total_js:
                     total_js.append(chunk_js)
