@@ -49,9 +49,9 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
             return res
         response_get = requests.get(url, headers=headers,verify=False,timeout=30)
 
-        img_resp = "\nThis is an image, pls check it in your broswer.\n"
-        office_resp = "\n\n\n please view this file in your broswer !!! \n\n\n"
-        if response_get.headers.get("Content-Type", "").startswith("image/jpeg"):
+        img_resp = "\nThis is an image, pls check it in your broswer.\n这是一张图片，请在浏览器里查看！\n"
+        office_resp = "\n\n\n please view this file in your broswer !!!\n请在浏览器中下载改文件查看！ \n\n\n"
+        if response_get.headers.get("Content-Type", "").startswith("image/"):
             echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=img_resp,current_num=num,total_num=total)
         elif response_get.headers.get("Content-Type", "").startswith("application/vnd"):
             echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=office_resp,current_num=num,total_num=total)
@@ -59,7 +59,7 @@ def make_request(url, data={},auth_type="",token="",num=0,total=0,single_request
             echo_res(url=url,method="GET",res_code=response_get.status_code,res_text=response_get.text,current_num=num,total_num=total)
         
         response_post = requests.post(url, json=data, headers=headers,verify=False,timeout=30)
-        if response_post.headers.get("Content-Type", "").startswith("image/jpeg"):
+        if response_post.headers.get("Content-Type", "").startswith("image/"):
             echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=img_resp,current_num=num,total_num=total)
         elif response_post.headers.get("Content-Type", "").startswith("application/vnd"):
             echo_res(url=url,method="POST",res_code=response_post.status_code,res_text=office_resp,current_num=num,total_num=total)
