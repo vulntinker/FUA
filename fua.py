@@ -284,8 +284,8 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                                                 guess_url_with_random_p_l = guess_url + "/etc/passwd"
                                                 guess_url_with_random_p = guess_url + "1234"
                                                 path_req.append(guess_url_with_random_p)
-                                                path_req.append(guess_url_with_random_w)
-                                                path_req.append(guess_url_with_random_l)
+                                                path_req.append(guess_url_with_random_p_w)
+                                                path_req.append(guess_url_with_random_p_l)
                                             path_req.append(guess_url)
                                             
                     path_req = list(set(path_req))
