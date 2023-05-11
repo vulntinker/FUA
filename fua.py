@@ -184,8 +184,8 @@ def find_hidden_js(url,res_text):
                         while rel.count('/') != 1:
                             rel,__ = os.path.split(rel)
                             tmp_domain = domain+rel+j
-                        if tmp_domain not in total_js:
-                            total_js.append(tmp_domain)
+                            if tmp_domain not in total_js:
+                                total_js.append(tmp_domain)
 
 
 
