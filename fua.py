@@ -78,7 +78,8 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限","404",":400")):
+        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限","404",":400",":405","未登录")):
+
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
             print("URL: ", url)
@@ -286,10 +287,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                             
                             if "=" in final_req_url:
                                 url_with_random_p = final_req_url+"4321"
-                                url_with_random_p_w = final_req_url + "C:\Windows\win.ini"
-                                url_with_random_p_l = final_req_url + "/etc/passwd"
-                                path_req.append(url_with_random_p_w)
-                                path_req.append(url_with_random_p_l)
+                                path_req.extend([final_req_url + "C:\Windows\win.ini",final_req_url + "/etc/passwd"])
                             else:
                                 url_with_random_p = final_req_url+"/4321"
 
@@ -300,12 +298,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                                     if len(guess_url) < 120 :
                                         if guess_url and guess_url not in path_req:
                                             if "=" in guess_url:
-                                                guess_url_with_random_p_w = guess_url + "C:\Windows\win.ini"
-                                                guess_url_with_random_p_l = guess_url + "/etc/passwd"
-                                                guess_url_with_random_p = guess_url + "1234"
-                                                path_req.append(guess_url_with_random_p)
-                                                path_req.append(guess_url_with_random_p_w)
-                                                path_req.append(guess_url_with_random_p_l)
+                                                path_req.extend([guess_url + "C:\Windows\win.ini",guess_url + "/etc/passwd",guess_url + "1234"])
                                             path_req.append(guess_url)
                                             
                     path_req = list(set(path_req))
@@ -320,10 +313,10 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 thread.start()
             for thread in batch_threads:
                 thread.join()
-    except Exception as e:
-        print(colored("\n\n[!] *F: get_apis_from_js_link, ERR: "+str(e),"green"))
-        pass
-
+    except:
+        import traceback
+        traceback.print_exc()
+    
 
 
 
@@ -332,7 +325,7 @@ def auto_find_directory(url,token="",auth_type="",user_set_base="",keep_path="",
         url = url.replace(" ","")
         global total_js 
         global reg_match
-        print(colored("[~] May the force be with you ; )\n\n","red",attrs=["bold"]))
+        print(colored("     [~] May the force be with you ; )\n\n","red",attrs=["bold"]))
         response = make_request(url=url,token=token,auth_type=auth_type,single_request=True)
         url = remove_url_params(url) # 访问用户提供的URL之后取netloc
         if keep_path:
@@ -388,6 +381,7 @@ def fuzzing_complete():
     print(colored("[*] Api Fuzzing Completed :)\n","yellow"))
 
 
+
 if __name__ == '__main__':
     header = '''
      _______   __    __       ___          
@@ -396,7 +390,7 @@ if __name__ == '__main__':
     |   __|   |  |  |  |   /  /_\  \       
     |  |      |  `--'  |  /  _____  \  
     |__|       \______/  /__/     \__\ 
-    
+
     Fuzzing Unauthorized Api (Beta)
     vulntinker (vulntinker@gmail.com)
     '''
@@ -425,7 +419,6 @@ if __name__ == '__main__':
             else:
                 get_apis_from_js_link(js_link=args.single_js,user_set_base=args.url_base,token=args.token,auth_type=args.auth_type,change_domain=args.change_domain)         
         fuzzing_complete()
-
     except KeyboardInterrupt:
         print("\n")
         print(colored("[!] USER EXITED\n","green"))
