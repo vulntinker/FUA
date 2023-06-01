@@ -13,7 +13,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # reg_match = [r'([a-zA-Z0-9_-]+\s*/\s*[a-zA-Z0-9_+-=?]+(?:\s*/\s*[a-zA-Z0-9_+-=?]+)*)']
 reg_match = [
-    r'"(/[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
+    r'"(/[a-zA-Z0-9_+#-]+/[a-zA-Z0-9_+#-?=]+(?:/[a-zA-Z0-9#_+-?=]+)*)"',
     r'"([a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
     r'"(post /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
     r'"(get /[a-zA-Z0-9_+-]+/[a-zA-Z0-9_+-?=]+(?:/[a-zA-Z0-9_+-?=]+)*)"',
@@ -78,7 +78,14 @@ def echo_res(url, method, res_code, res_text, current_num, total_num):
         sys.stdout.write("\033[2K\033[G" + "[+] ({0}/{1}) [{2}] URL: {3}".format(current_num, total_num, method, url))
         sys.stdout.flush()
         file = open(urlsplit(url).netloc + ".txt", "a")
-        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限","404",":400",":405","未登录")):
+
+        if "/#/" in url :
+            file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
+            print("\n\n")
+            print("URL(panel?): ", colored(url, 'yellow', attrs=["bold"]))
+            print("\n\n")
+        if res_code in (200,301,302,500) and all(x not in res_text for x in ("<html>", "<!doctype html>", "<!DOCTYPE html>","<!DOCTYPE HTML>","</script>", ":401", "<title>", 'status":-1', ":404",'"-4"',"<div","没有权限","404",":400",":405","未登录","{code: 9001}",'code":204','code":600')):
+        # if res_code in (200,301,302,500) and all(x not in res_text for x in (":401", 'status":-1', ":404",'"-4"',"没有权限","404",":400",":405","未登录","{code: 9001}",'code":204','code":600')):
 
             file.write("\n\n" + url + '\t\t' + str(res_code) + '\t\t' + method + '\n\n' + res_text + "\n\n\n")
             print("\n\n")
@@ -256,6 +263,9 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
 
                         if any(x in rel_path for x in ["logout", "loginOut", "loginout","logOut", "resetToken", "refreshToken", "delete", "Delete","del","Del"]):
                             continue 
+                        # if any(x in rel_path for x in [":id",":type"]):
+                        if ":id" in rel_path:
+                            rel_path = rel_path.replace(":id","123")
 
                         rel_path = rel_path.replace("post ","")
                         rel_path = rel_path.replace("get ","")
@@ -264,8 +274,11 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
 
                                
                         final_req_url = sent + rel_path                       
-                        if len(final_req_url) < 120:
+                        if len(final_req_url) < 120: 
                             path_req.append(final_req_url) 
+                            if "/#/" in rel_path:
+                                path_req.append(remove_url_params(sent) + rel_path)
+                                continue
 
                             if "/api" not in rel_path or "api/" not in rel_path:
                                 guess_0 = sent+"/api"+rel_path 
@@ -313,6 +326,7 @@ def get_apis_from_js_link(js_link,res_text="",user_set_base="",token="",auth_typ
                 thread.start()
             for thread in batch_threads:
                 thread.join()
+    # except Exception as e:
     except:
         import traceback
         traceback.print_exc()
